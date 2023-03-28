@@ -1,0 +1,44 @@
+---
+title: 'STAT 327: Project'
+author: "Dawson Kinsman and Sabastian Zuhorski"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(R6)
+```
+
+# Classes
+Class definitions for the Monte Carlo Tree Search are shown below. 
+```{r}
+board <- R6Class("board", 
+                     public = list(board = c(rep(NA,9))))
+
+info <- R6Class("info", 
+                    public = list(board = board, 
+                              player = 'numeric', 
+                              visits = 'numeric', 
+                              wins = 'numeric',
+                              randomPlay = function(){
+                                open_box = which(is.na(board))
+                                move = sample(open_box,1)
+                                if (player == 0) board
+                              }))
+
+node <- R6Class("node", 
+                    public = list(parent = node, 
+                           child = list(node), 
+                           info = info))
+
+tree <- R6Class("tree", 
+                public = list(root = node))
+
+MCTS <- R6Class('MCTS', 
+                public = list( ))
+```
+
+# Notes
+- We can check if 3 in a row by summing three entries and checking if they are 0 mod 3.
