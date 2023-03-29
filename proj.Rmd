@@ -15,22 +15,34 @@ library(R6)
 Class definitions for the Monte Carlo Tree Search are shown below. 
 ```{r}
 board <- R6Class("board", 
-                     public = list(board = c(rep(NA,9))))
+                     public = list(size = 3,
+                                   progress = 0,
+                                   winner = NA,
+                                   board = c(rep(NA,self$size^2)),
+                                   checkWin = function (){
+                                     for (i in 1:self$size^2){
+                                       player 
+                                     }
+                                   }))
 
 info <- R6Class("info", 
                     public = list(board = board, 
-                              player = 'numeric', 
-                              visits = 'numeric', 
-                              wins = 'numeric',
-                              randomPlay = function(){
-                                open_box = which(is.na(board))
+                              player = integer, 
+                              visits = integer, 
+                              wins = integer,
+                              randomPlay = function() {
+                                # gets the indices of open boxes on the board
+                                open_box = which(is.na(self$board$board))
+                                # chooses a random box according to a uniform dist.
                                 move = sample(open_box,1)
-                                if (player == 0) board
-                              }))
+                                self$board$board[move] = ifelse(self$player, 1, 0)
+                                invisible(self)
+                                }
+                              ))
 
 node <- R6Class("node", 
-                    public = list(parent = node, 
-                           child = list(node), 
+                    public = list(parent = NA, 
+                           child = list(NA), 
                            info = info))
 
 tree <- R6Class("tree", 
@@ -39,6 +51,17 @@ tree <- R6Class("tree",
 MCTS <- R6Class('MCTS', 
                 public = list( ))
 ```
+# Test
+                              
+```{r}
+new_board = board$new()
+new_info = info$new()
+new_info$player = 1
+new_info$board = new_board
+new_info$randomPlay()
+new_info$board$board
+```
+
 
 # Notes
 - We can check if 3 in a row by summing three entries and checking if they are 0 mod 3.
