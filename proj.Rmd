@@ -9,25 +9,51 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(R6)
+library(gtools)
 ```
 
 # Classes
 Class definitions for the Monte Carlo Tree Search are shown below. 
 ```{r}
 board <- R6Class("board", 
-                     public = list(size = 3,
-                                   progress = 0,
-                                   winner = NA,
-                                   board = c(rep(NA,self$size^2)),
+                     public = list(#progress = 0, # we may not need this var, we might be able to just check who the winner is for progress
+                                   winner = NULL,
+                                   board = c(rep(NA, 3^2)),
                                    checkWin = function (){
-                                     for (i in 1:self$size^2){
-                                       player 
+                                     
+                                     player1 = which(self$board==1)
+                                     player2 = which(self$board==-1)
+                                     cat('P1:', player1, '\nP2:', player2)
+                                     # have to check columns, rows, and diagonals for a win, we'll use a magic square
+                                     if (length(player1) < 3 & length(player2) <3) return(self$winner)
+                                     
+                                     # UNCOMMENT AFTER DONE TESTING
+                                     # p1_moves <- combinations(length(player1), 3, player1)
+                                     # for (i in 1:nrow(p1_moves)){
+                                     #   if(sum(p1_moves[i,])==15){
+                                     #     self$winner = 1
+                                     #     return(self$winner)
+                                     #   }
+                                     # }
+                                     
+                                     p2_moves <- combinations(length(player2), 3, player2)
+                                     #print(p2_moves)
+                                     for (i in 1:nrow(p2_moves)){
+                                       if(sum(p2_moves[i,])==15){
+                                         self$winner = -1
+                                         return(self$winner)
+                                       }
                                      }
+                                     
+                                     if (length(which(is.na(self$board)))==0){
+                                         self$winner = 0
+                                         return(self$winner)
+                                       }
                                    }))
 
 info <- R6Class("info", 
                     public = list(board = board, 
-                              player = integer, 
+                              player = NA, 
                               visits = integer, 
                               wins = integer,
                               randomPlay = function() {
@@ -35,7 +61,7 @@ info <- R6Class("info",
                                 open_box = which(is.na(self$board$board))
                                 # chooses a random box according to a uniform dist.
                                 move = sample(open_box,1)
-                                self$board$board[move] = ifelse(self$player, 1, 0)
+                                self$board$board[move] = ifelse(self$player==1, 1, -1)
                                 invisible(self)
                                 }
                               ))
@@ -56,12 +82,20 @@ MCTS <- R6Class('MCTS',
 ```{r}
 new_board = board$new()
 new_info = info$new()
-new_info$player = 1
+new_info$player = 2
 new_info$board = new_board
 new_info$randomPlay()
+new_info$randomPlay()
+new_info$randomPlay()
+new_info$randomPlay()
+new_info$randomPlay()
+new_info$randomPlay()
 new_info$board$board
+new_info$board$checkWin()
 ```
 
 
 # Notes
 - We can check if 3 in a row by summing three entries and checking if they are 0 mod 3.
+- Right now Player1 is coded as 1, Player2 is coded as 0, and a draw is -1. And I am using winner as an indicator if the game is finished. If not, then winner is NULL.
+
