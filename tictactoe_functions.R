@@ -39,18 +39,24 @@ checkWin = function (board){
 randomPlay = function(board, player) {
   # gets the indices of open boxes on the board
   open_box = which(is.na(board))
+  cat(open_box, ' ')
   # chooses a random box according to a uniform dist.
   move = sample(open_box,1)
+  if (length(open_box)==1) move = open_box
   
+  cat(move, '\n')
   # player 1 is 1, player 2 is -1
   board[move] = ifelse(player==1, 1, -1)
   return(board)
 }
 
 ########################### PLAY GAME ##########################################
-tictactoe = function(player){
+
+tictactoe = function(print_info = F){
   board = rep(NA, 9)
+  player = 1
   while (is.na(checkWin(board))){
+    #print(player)
     board = randomPlay(board, player)
     player = -1 * player
     
@@ -58,7 +64,16 @@ tictactoe = function(player){
     player2 = which(board==-1)
     cat('P1:', player1, ' P2:', player2, '\n')
   }
-  return(checkWin(board))
+  
+  winner = checkWin(board)
+  
+  if(print_info==T){
+  print(ifelse(winner ==1, 'The winner is player 1', 
+               ifelse(winner == -1, 'The winner player 2', 
+                      'The game ends with a draw')))}
+  
+  return(winner)
 }
 
-tictactoe(1)
+############################## TEST ############################################
+tictactoe(T)
