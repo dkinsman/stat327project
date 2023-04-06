@@ -39,20 +39,43 @@ checkWin = function (board){
 randomPlay = function(board, player) {
   # gets the indices of open boxes on the board
   open_box = which(is.na(board))
-  cat(open_box, ' ')
+  #cat(open_box, ' ')
   # chooses a random box according to a uniform dist.
   move = sample(open_box,1)
   if (length(open_box)==1) move = open_box
   
-  cat(move, '\n')
+  #cat(move, '\n')
   # player 1 is 1, player 2 is -1
   board[move] = ifelse(player==1, 1, -1)
   return(board)
 }
 
+############################### MINIMAX ########################################
+# NOT FINISHED
+evaluate_position <-function(board){ 
+  winner = checkWin(board)
+  
+  if(winner == -1) return(-1000)
+  else if (winner == 1) return(1000)
+  else if(winner == 0) return(0)
+  
+  open_moves <- which(is.na(board))
+  p1moves <- which(board == 1)
+  p2moves <- which(board == -1)
+  corners = c(8, 6, 4, 2)
+  center = 5
+  
+  p1_score <- length(intersect(p1moves, corners)) * 10 + 
+    length(intersect(p1moves, center)) * 5
+  p2_score <- length(intersect(p2moves, corners)) * 10 + 
+    length(intersect(p2moves, center)) * 5
+  
+  return(p1_score - p2_score)
+}
+
 ########################### PLAY GAME ##########################################
 
-tictactoe = function(print_info = F){
+randtictactoe = function(print_info = F){
   board = rep(NA, 9)
   player = 1
   while (is.na(checkWin(board))){
@@ -62,7 +85,7 @@ tictactoe = function(print_info = F){
     
     player1 = which(board==1)
     player2 = which(board==-1)
-    cat('P1:', player1, ' P2:', player2, '\n')
+    if (print_info == T) cat('P1:', player1, ' P2:', player2, '\n')
   }
   
   winner = checkWin(board)
@@ -75,5 +98,5 @@ tictactoe = function(print_info = F){
   return(winner)
 }
 
-############################## TEST ############################################
-tictactoe(T)
+
+
