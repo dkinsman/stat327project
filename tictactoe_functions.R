@@ -1,26 +1,28 @@
 ####################### Given board, check if there's a winner #################
-checkWin = function (board){
+checkWin = function (board, n){
   winner = NA
-  
+  constant = n * (n^2 + 1) / 2
+    
   player1 = which(board==1)
   player2 = which(board==-1)
   #cat('P1:', player1, ' P2:', player2, '\n')
+  
   # have to check columns, rows, and diagonals for a win,
   # we'll use a magic square, the indices should sum to 15!
-  if (length(player1) >= 3){
-  p1_moves <- combinations(length(player1), 3, player1)
+  if (length(player1) >= n){
+  p1_moves <- combinations(length(player1), n, player1)
   for (i in 1:nrow(p1_moves)){
-    if(sum(p1_moves[i,])==15){
+    if(sum(p1_moves[i,])== constant){
       winner = 1
       return(winner)
     }
   }}
   
-  if (length(player2) >=3){
-  p2_moves <- combinations(length(player2), 3, player2)
+  if (length(player2) >=n){
+  p2_moves <- combinations(length(player2), n, player2)
   #print(p2_moves)
   for (i in 1:nrow(p2_moves)){
-    if(sum(p2_moves[i,])==15){
+    if(sum(p2_moves[i,])==constant){
       winner = -1
       return(winner)
     }
@@ -73,12 +75,12 @@ evaluate_position <-function(board){
   return(p1_score - p2_score)
 }
 
-########################### PLAY GAME ##########################################
+########################### PLAY 3x3 RANDOM GAME ###############################
 
-randtictactoe = function(print_info = F){
-  board = rep(NA, 9)
+randtictactoe = function(dim, print_info = F){
+  board = rep(NA, dim^2)
   player = 1
-  while (is.na(checkWin(board))){
+  while (is.na(checkWin(board, dim))){
     #print(player)
     board = randomPlay(board, player)
     player = -1 * player
@@ -88,7 +90,7 @@ randtictactoe = function(print_info = F){
     if (print_info == T) cat('P1:', player1, ' P2:', player2, '\n')
   }
   
-  winner = checkWin(board)
+  winner = checkWin(board, dim)
   
   if(print_info==T){
   print(ifelse(winner ==1, 'The winner is player 1', 
@@ -97,6 +99,7 @@ randtictactoe = function(print_info = F){
   
   return(winner)
 }
+
 
 
 

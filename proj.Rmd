@@ -19,15 +19,41 @@ source('tictactoe_functions.R')
 # Test
                               
 ```{r}
-set.seed(123)
-winners <- replicate(1e4, randtictactoe())
-hist(winners, main = 'Results of 10,000 Tic-Tac-Toe Games')
+set.seed(0)
+winners3 <- replicate(1e4, randtictactoe(3))
+table(winners3)
+hist(winners3, main = 'Results of 10,000 3x3 Tic-Tac-Toe Games')
 ```
 
+```{r}
+set.seed(1)
+winners4 <- replicate(1e4, randtictactoe(4))
+table(winners4)
+hist(winners4, main = 'Results of 10,000 4x4 Tic-Tac-Toe Games')
+```
+
+```{r}
+set.seed(2)
+winners5 <- replicate(1e4, randtictactoe(5))
+table(winners5)
+hist(winners5, main = 'Results of 10,000 5x5 Tic-Tac-Toe Games')
+```
+
+
+```{r}
+set.seed(3)
+winners10 <- replicate(1e4, randtictactoe(10))
+table(winners10)
+hist(winners10, main = 'Results of 10,000 10x10 Tic-Tac-Toe Games')
+```
 
 
 # Notes
 - We can check if 3 in a row by summing three entries and checking if they are 0 mod 3.
 - Right now Player1 is coded as 1, Player2 is coded as 0, and a draw is -1. And I am using winner as an indicator if the game is finished. If not, then winner is NULL.
 - For more state on a magic square: https://mathworld.wolfram.com/MagicSquare.html, we have to keep this in mind if we try to visualize any of the boards
+
+
+
+
 
