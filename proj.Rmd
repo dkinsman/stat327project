@@ -57,7 +57,6 @@ df <- randomSimulation(n, 3, df = df)
 df <- randomSimulation(n, 4, df = df, seed = 1)
 df <- randomSimulation(n, 5, df = df, seed = 2)
 df <- randomSimulation(n, 10, df = df, seed = 3)
-df <- randomSimulation(n, 15, df = df, seed = 3)
 ```
 
 We can visualize the number of times each player wins using a bar chart. 
@@ -95,19 +94,19 @@ knitr::kable(pt, align = 'cccc') %>% kable_styling(full_width = F)
 ```
 
 # For which first move does Player 1 have the highest probability of winning?
-There are 3 general first moves, those (on the $3\times 3$ magic square) being, 8, 1, and 5. All of the other first moves can be written as a rotation or reflection of these three
+There are 3 general first moves, those being, 1, 4, and 5. All of the other first moves can be written as a rotation or reflection of these three
 Let's simulate 1,000 games using each of the afro 
 
 ```{r}
-board8 <- c(rep(NA,7), 1, NA)
-board1 <- c(1, rep(NA,8))
-board5 <- c(rep(NA,4),1,rep(NA,4))
+board1 <- array(c(1, rep(NA, 8)), dim = c(3,3))
+board4 <- array(c(rep(NA, 3), 1, rep(NA, 4)), dim = c(3,3))
+board5 <- array(c(rep(NA,4),1,rep(NA,4)), dim = c(3,3))
 
 df1 <- data.frame(matrix(ncol = 2, nrow = 0))
 colnames(df) <- c('Winner', 'Board Size')
 
-df1 <- randomSimulation(n, 3, board8, df = df1, seed = 0, 'First Move')
-df1 <- randomSimulation(n, 3, board1, df = df1, seed = 1, 'First Move')
+df1 <- randomSimulation(n, 3, board1, df = df1, seed = 0, 'First Move')
+df1 <- randomSimulation(n, 3, board4, df = df1, seed = 1, 'First Move')
 df1 <- randomSimulation(n, 3, board5, df = df1, seed = 2, 'First Move')
 ```
 
@@ -127,7 +126,7 @@ ggplot(df1, aes(Winner)) +
 results <- data.frame(matrix(ncol = 3, nrow = 0))
 colnames(results) <- c('Winner', 'First Move', 'Probability')
 
-for (i in c(8,1,5)){
+for (i in c(1,4,5)){
   df_fmove <- df1 %>% filter(Move == i)
   p1 <- length(df_fmove$Winner[df_fmove$Winner == 'Player 1']) / n; p1
   p2 <- length(df_fmove$Winner[df_fmove$Winner == 'Player 2']) / n; p2
@@ -145,6 +144,4 @@ knitr::kable(pt, align = 'cccc') %>% kable_styling(full_width = F)
 # Notes
 - We can check if 3 in a row by summing three entries and checking if they are 0 mod 3.
 - Right now Player1 is coded as 1, Player2 is coded as -1, and a draw is 0. And I am using winner as an indicator if the game is finished. If not, then winner is NULL.
-- For more state on a magic square: https://mathworld.wolfram.com/MagicSquare.html, we have to keep this in mind if we try to visualize any of the boards
-
 

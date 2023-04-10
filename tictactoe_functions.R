@@ -1,38 +1,74 @@
 ####################### Given board, check if there's a winner #################
 checkWin = function (board, n){
   winner = NA
-  constant = n * (n^2 + 1) / 2
-    
-  player1 = which(board==1)
-  player2 = which(board==-1)
+  dim = sqrt(length(board))
+  
   #cat('P1:', player1, ' P2:', player2, '\n')
   
   # have to check columns, rows, and diagonals for a win,
   # we'll use a magic square, the indices should sum to 15!
-  if (length(player1) >= n){
-  p1_moves <- combinations(length(player1), n, player1)
-  for (i in 1:nrow(p1_moves)){
-    if(sum(p1_moves[i,])== constant){
+  if (length(!is.na(board))> (2* dim -1)){
+  for(i in 1:dim){
+    # check row sum for Player 1
+    if (sum(board[i,], na.rm = T) == dim){
       winner = 1
       return(winner)
     }
-  }}
-  
-  if (length(player2) >=n){
-  p2_moves <- combinations(length(player2), n, player2)
-  #print(p2_moves)
-  for (i in 1:nrow(p2_moves)){
-    if(sum(p2_moves[i,])==constant){
+    #check column sum for Player 1
+    if(sum(board[,i], na.rm = T) == dim){
+      winner = 1 
+      return(winner)
+    }
+    if (sum(board[i,],na.rm = T) == -dim){
       winner = -1
       return(winner)
     }
-  }}
+    
+    #check column sum for Player 1
+    if(sum(board[,i], na.rm = T) == -dim){
+      winner = -1 
+      return(winner)
+    }
+  }
+  }
+
+  diag_count = dim
+  antidiag_count = 1
+  diags <- c(diag_count)
+  antidiags <- c(antidiag_count)
   
-  #declares a draw
-  if (length(which(is.na(board)))==0){
-    winner = 0
+  for (i in 2:dim){
+    diag_count = diag_count + dim - 1
+    antidiag_count = antidiag_count + dim + 1
+    
+    diags <- append(diags, diag_count)
+    antidiags <- append(antidiags, antidiag_count)
+  }
+  
+  
+  if (sum(board[diags], na.rm = T)==dim){
+    winner = 1
     return(winner)
   }
+  
+  if(sum(board[diags], na.rm = T)==-dim){
+    winner = -1
+    return(winner)
+  }
+  
+  if (sum(board[antidiags], na.rm = T)==dim){
+    winner = 1
+    return(winner)
+  }
+  
+  if(sum(board[antidiags], na.rm = T)==-dim){
+    winner = -1
+    return(winner)
+  }
+  
+  
+  # declare a draw
+  if(length(which(is.na(board)))==0) winner = 0
   
   return(winner)
 }
@@ -75,10 +111,12 @@ evaluate_position <-function(board){
   return(p1_score - p2_score)
 }
 
-########################### PLAY 3x3 RANDOM GAME ###############################
+########################### PLAY A RANDOM GAME ###############################
 
-randtictactoe = function(dim, board = list(NA), print_info = F){
-  if (length(which(!is.na(board))) > 0) board = rep(NA, dim^2)
+randtictactoe = function(dim, board = NA,  print_info = F){
+  if (length(which(is.na(board)))==1) board = array(rep(NA, dim^2), 
+                                                      dim = c(dim, dim))
+  #print(board)
   player = 1
   while (is.na(checkWin(board, dim))){
     #print(player)
@@ -88,6 +126,7 @@ randtictactoe = function(dim, board = list(NA), print_info = F){
     player1 = which(board==1)
     player2 = which(board==-1)
     if (print_info == T) cat('P1:', player1, ' P2:', player2, '\n')
+    #print(board)
   }
   
   winner = checkWin(board, dim)
@@ -100,6 +139,6 @@ randtictactoe = function(dim, board = list(NA), print_info = F){
   return(winner)
 }
 
-#######################
+####################### 
 
 
