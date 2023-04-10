@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(gtools)
 library(knitr)
+library(kableExtra)
 ```
 
 # Functions and Classes
@@ -19,20 +20,22 @@ Some functions and classes are imported from a separate file.
 ```{r}
 source('tictactoe_functions.R')
 
-randomSimulation = function(numSims, boardSize, df, seed = 0){
+randomSimulation = function(numSims, boardSize = 3, board = NA, df, seed = 0, colName = NA){
   set.seed(seed)
   
-  winners<- replicate(numSims, randtictactoe(boardSize))
+  winners<- replicate(numSims, randtictactoe(boardSize, board))
   table(winners)
-  hist(winners, 
-       main = paste0('Results of 1,000',boardSize,'x', boardSize,' Tic-Tac-Toe Games'))
-
-  p1 <- sum(winners[winners == 1]) / numSims; p1
-  p2 <- length(winners[winners == -1]) / numSims; p2
-  draw <- length(winners[winners == 0]) / numSims; draw
-
-  df2 <- data.frame(Winner = c('Player 1', 'Player 2', 'Draw'), 
-                 'Board Size' = rep(paste0(boardSize,'x', boardSize), 3), Probability = c(p1,p2, draw))
+  
+  if (is.na(colName)){
+    hist(winners, 
+       main = paste0('Results of 1,000 ',boardSize,'x', boardSize,' Tic-Tac-Toe Games'))
+    df2 <- data.frame(Winner = winners, 
+                  'Board Size' = rep(paste0(boardSize,'x', boardSize), numSims))
+  }
+  else if (colName == 'First Move'){
+    df2 <- data.frame(Winner = winners, 'Move' = rep(which(!is.na(board))), numSims)
+  }
+  
   df <- rbind(df, df2)
   
   return(df)
@@ -45,21 +48,99 @@ n = 1e3
 
 # How does the size of the board effect the probability of Player 1 winning?
                               
+First, we simulate the data using the functions we have written. We choose to run 1,000 simulations for boards with dimensions $3\times 3$, $4 \times 4$, $5 \times 5$, and $10\times 10$. 
 ```{r}
-df <- data.frame(matrix(ncol = 3, nrow = 0))
-colnames(df) <- c('Winner', 'Board Size', 'Probability')
+df <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(df) <- c('Winner', 'Board Size')
 
-df <- randomSimulation(n, 3, df)
-df <- randomSimulation(n, 4, df, 1)
-df <- randomSimulation(n, 5, df, 2)
-df <- randomSimulation(n, 10, df, 3)
-#df <- randomSimulation(n, 20, df, 4)
-
-pt <- pivot_wider(df, id_cols = Board.Size, names_from = Winner, values_from = Probability)
-
-knitr::kable(pt, align = 'cccc')
+df <- randomSimulation(n, 3, df = df)
+df <- randomSimulation(n, 4, df = df, seed = 1)
+df <- randomSimulation(n, 5, df = df, seed = 2)
+df <- randomSimulation(n, 10, df = df, seed = 3)
+df <- randomSimulation(n, 15, df = df, seed = 3)
 ```
 
+We can visualize the number of times each player wins using a bar chart. 
+```{r}
+boards <- c('3x3','4x4','5x5','10x10')
+df$Board.Size <- factor(df$Board.Size, levels = boards)
+df$Winner <- factor(df$Winner, levels = c(1, -1, 0), 
+                    labels = c('Player 1', 'Player 2', 'Draw'))
+
+ggplot(df, aes(Winner)) + 
+  geom_bar(aes(fill = Board.Size), position = 'dodge', color = 'black', 
+           alpha = 0.75) +
+  ggtitle('Winner of 1,000 Tic-Tac-Toe Games', 
+          subtitle = 'Using Boards of Various Dimensions')
+```
+
+We then offer 
+```{r}
+results <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(results) <- c('Winner', 'Board Size', 'Probability')
+
+for (i in boards){
+  df_board <- df %>% filter(Board.Size == i)
+  p1 <- length(df_board$Winner[df_board$Winner == 'Player 1']) / n; p1
+  p2 <- length(df_board$Winner[df_board$Winner == 'Player 2']) / n; p2
+  draw <- length(df_board$Winner[df_board$Winner == 'Draw']) / n; draw
+  
+  res <- data.frame(Winner = c('Player 1', 'Player 2', 'Draw'), 
+                 'Board Size' = i, Probability = c(p1,p2, draw))
+  results <- rbind(results, res)
+}
+
+pt <- pivot_wider(results, id_cols = Board.Size, names_from = Winner, values_from = Probability); pt
+knitr::kable(pt, align = 'cccc') %>% kable_styling(full_width = F)
+```
+
+# For which first move does Player 1 have the highest probability of winning?
+There are 3 general first moves, those (on the $3\times 3$ magic square) being, 8, 1, and 5. All of the other first moves can be written as a rotation or reflection of these three
+Let's simulate 1,000 games using each of the afro 
+
+```{r}
+board8 <- c(rep(NA,7), 1, NA)
+board1 <- c(1, rep(NA,8))
+board5 <- c(rep(NA,4),1,rep(NA,4))
+
+df1 <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(df) <- c('Winner', 'Board Size')
+
+df1 <- randomSimulation(n, 3, board8, df = df1, seed = 0, 'First Move')
+df1 <- randomSimulation(n, 3, board1, df = df1, seed = 1, 'First Move')
+df1 <- randomSimulation(n, 3, board5, df = df1, seed = 2, 'First Move')
+```
+
+```{r}
+df1$Move <- as.factor(df1$Move)
+df1$Winner <- factor(df1$Winner, levels = c(1, -1, 0), 
+                    labels = c('Player 1', 'Player 2', 'Draw'))
+
+ggplot(df1, aes(Winner)) + 
+  geom_bar(aes(fill = Move), position = 'dodge', color = 'black', 
+           alpha = 0.75) +
+  ggtitle('Winner of 1,000 Tic-Tac-Toe Games', 
+          subtitle = 'Using Different First Moves')
+```
+
+```{r}
+results <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(results) <- c('Winner', 'First Move', 'Probability')
+
+for (i in c(8,1,5)){
+  df_fmove <- df1 %>% filter(Move == i)
+  p1 <- length(df_fmove$Winner[df_fmove$Winner == 'Player 1']) / n; p1
+  p2 <- length(df_fmove$Winner[df_fmove$Winner == 'Player 2']) / n; p2
+  draw <- length(df_fmove$Winner[df_fmove$Winner == 'Draw']) / n; draw
+  
+  res <- data.frame(Winner = c('Player 1', 'Player 2', 'Draw'), 
+                 'First Move' = i, Probability = c(p1,p2, draw))
+  results <- rbind(results, res)
+}
+
+pt <- pivot_wider(results, id_cols = First.Move, names_from = Winner, values_from = Probability); pt
+knitr::kable(pt, align = 'cccc') %>% kable_styling(full_width = F)
+```
 
 # Notes
 - We can check if 3 in a row by summing three entries and checking if they are 0 mod 3.

@@ -77,8 +77,8 @@ evaluate_position <-function(board){
 
 ########################### PLAY 3x3 RANDOM GAME ###############################
 
-randtictactoe = function(dim, print_info = F){
-  board = rep(NA, dim^2)
+randtictactoe = function(dim, board = list(NA), print_info = F){
+  if (length(which(!is.na(board))) > 0) board = rep(NA, dim^2)
   player = 1
   while (is.na(checkWin(board, dim))){
     #print(player)
@@ -100,6 +100,6 @@ randtictactoe = function(dim, print_info = F){
   return(winner)
 }
 
-
+#######################
 
 
