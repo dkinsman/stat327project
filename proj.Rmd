@@ -32,8 +32,13 @@ randomSimulation = function(numSims, boardSize = 3, board = NA, df, seed = 0, co
     df2 <- data.frame(Winner = winners, 
                   'Board Size' = rep(paste0(boardSize,'x', boardSize), numSims))
   }
-  else if (colName == 'First Move'){
-    df2 <- data.frame(Winner = winners, 'Move' = rep(which(!is.na(board))), numSims)
+  else if (colName == 'First Move' | colName == 'Second Move'){
+    if (colName == 'First Move'){
+      df2 <- data.frame(Winner = winners, 'Move' = rep(which(board==1), numSims))}
+    else{
+      df2 <- data.frame(Winner = winners, 'First Move' = rep(which(board==1)),  
+                        'Second Move' = rep(which(board==-1), numSims))}
+    
   }
   
   df <- rbind(df, df2)
@@ -103,7 +108,7 @@ board4 <- array(c(rep(NA, 3), 1, rep(NA, 4)), dim = c(3,3))
 board5 <- array(c(rep(NA,4),1,rep(NA,4)), dim = c(3,3))
 
 df1 <- data.frame(matrix(ncol = 2, nrow = 0))
-colnames(df) <- c('Winner', 'Board Size')
+colnames(df1) <- c('Winner', 'Move')
 
 df1 <- randomSimulation(n, 3, board1, df = df1, seed = 0, 'First Move')
 df1 <- randomSimulation(n, 3, board4, df = df1, seed = 1, 'First Move')
@@ -141,6 +146,77 @@ pt <- pivot_wider(results, id_cols = First.Move, names_from = Winner, values_fro
 knitr::kable(pt, align = 'cccc') %>% kable_styling(full_width = F)
 ```
 
+# For which second move does Player 2 have the highest probability of winning?
+```{r}
+board1 <- array(c(rep(NA,2), 1, rep(NA, 3), -1, rep(NA, 2)), dim = c(3,3))
+board2 <- array(c(rep(NA,2), 1, rep(NA, 4), -1, NA), dim = c(3,3))
+board3 <- array(c(rep(NA,2),-1,rep(NA,5), 1), dim = c(3,3))
+board4 <- array(c(rep(NA,4),-1,rep(NA,3), 1), dim = c(3,3))
+board5 <- array(c(rep(NA,5),-1,rep(NA,2), 1), dim = c(3,3))
+board6 <- array(c(rep(NA,2),-1,rep(NA,4), 1, NA), dim = c(3,3))
+board7 <- array(c(NA,-1,rep(NA,5), 1, NA), dim = c(3,3))
+board8 <- array(c(rep(NA,5),1,NA, -1, NA), dim = c(3,3))
+board9 <- array(c(rep(NA,4),-1, 1, rep(NA,3)), dim = c(3,3))
+board10 <- array(c(rep(NA,5),1,rep(NA,2), -1), dim = c(3,3))
+board11 <- array(c(rep(NA,4),1,rep(NA,3), -1), dim = c(3,3))
+board12 <- array(c(rep(NA,4),1, -1, rep(NA, 3)), dim = c(3,3))
+
+df1 <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(df1) <- c('Winner', 'First Move', 'Second Move')
+
+df1 <- randomSimulation(n, 3, board1, df = df1, seed = 0, 'Second Move')
+df1 <- randomSimulation(n, 3, board2, df = df1, seed = 1, 'Second Move')
+df1 <- randomSimulation(n, 3, board3, df = df1, seed = 2, 'Second Move')
+df1 <- randomSimulation(n, 3, board4, df = df1, seed = 3, 'Second Move')
+df1 <- randomSimulation(n, 3, board5, df = df1, seed = 4, 'Second Move')
+df1 <- randomSimulation(n, 3, board6, df = df1, seed = 5, 'Second Move')
+df1 <- randomSimulation(n, 3, board7, df = df1, seed = 6, 'Second Move')
+df1 <- randomSimulation(n, 3, board8, df = df1, seed = 7, 'Second Move')
+df1 <- randomSimulation(n, 3, board9, df = df1, seed = 8, 'Second Move')
+df1 <- randomSimulation(n, 3, board10, df = df1, seed = 9, 'Second Move')
+df1 <- randomSimulation(n, 3, board11, df = df1, seed = 10, 'Second Move')
+df1 <- randomSimulation(n, 3, board12, df = df1, seed = 11, 'Second Move')
+
+df1$First.Move <- as.factor(df1$First.Move)
+df1$Second.Move <- as.factor(df1$Second.Move)
+df1$Winner <- factor(df1$Winner, levels = c(1, -1, 0), 
+                    labels = c('Player 1', 'Player 2', 'Draw'))
+
+ggplot(df1, aes(Winner)) + 
+  geom_bar(aes(fill = Second.Move), position = 'dodge', color = 'black', 
+           alpha = 0.75) +
+  ggtitle('Winner of 1,000 Tic-Tac-Toe Games', 
+          subtitle = 'Using Different Second Moves')
+
+ggplot(df1, aes(Winner)) + 
+  geom_bar(aes(fill = Second.Move), position = 'dodge', color = 'black', 
+           alpha = 0.75) + facet_wrap(~First.Move) +
+  ggtitle('Winner of 1,000 Tic-Tac-Toe Games', 
+          subtitle = 'Using Different Second Moves Faceted by First Move')
+```
+```{r}
+results <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(results) <- c('Winner', 'Second Move', 'Probability')
+
+for (i in 1:9){
+  df_fmove <- df1 %>% filter(First.Move==i)
+  print(dim(df_fmove))
+  for (j in 1:9){
+  df_smove <- df_fmove %>% filter(Second.Move == j)
+  p1 <- length(df_smove$Winner[df_smove$Winner == 'Player 1']) / dim(df_smove)[1]; p1
+  p2 <- length(df_smove$Winner[df_smove$Winner == 'Player 2']) / dim(df_smove)[1]; p2
+  draw <- length(df_smove$Winner[df_smove$Winner == 'Draw']) / dim(df_smove)[1]; draw
+  
+  res <- data.frame(Winner = c('Player 1', 'Player 2', 'Draw'), 'First Move' = i,
+                 'Second Move' = j, Probability = c(p1,p2, draw))
+  results <- rbind(results, res)
+  }
+}
+
+pt <- pivot_wider(results, id_cols = c(First.Move,Second.Move), names_from = Winner, values_from = Probability)
+pt <- na.omit(pt); pt
+knitr::kable(pt, align = 'cccc') %>% kable_styling(full_width = F)
+```
 # Notes
 - We can check if 3 in a row by summing three entries and checking if they are 0 mod 3.
 - Right now Player1 is coded as 1, Player2 is coded as -1, and a draw is 0. And I am using winner as an indicator if the game is finished. If not, then winner is NULL.
