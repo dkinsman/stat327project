@@ -249,19 +249,16 @@ MCTSplay = function(board = array(rep(NA, 3^2), dim = c(3, 3)),
   root$board = board
   root$player = player
   #print(root$board)
-  #print(root[[1]]$board)
   
   # repeat the simulations for specified iterations
   for (i in 1:iterations){
-    #select node (root) to expand, we select the child with the highest UCB value
     #cat('\nIteration: ', i, '\n')
+    #select node (root) to expand, we select the child with the highest UCB value
     node <- selectNode(root)
     #expand the node if terminal
     exploreNode <- node
     if (is.na(checkWin(node$board))) exploreNode = expandNode(node)
     
-    #cat(length(exploreNode[[1]]$children), '=', length(node[[1]]$children), '\n')
-    #print(length(exploreNode[[1]]$children))
     if(length(exploreNode$children)> 0) exploreNode <- explorenode$getRandomChild
     winner <- playGame(exploreNode)
     root <- backpropogate(exploreNode, winner)
@@ -269,7 +266,6 @@ MCTSplay = function(board = array(rep(NA, 3^2), dim = c(3, 3)),
     #print(exploreNode$board)
   }
   
-  # cat(class(root[[1]]$visits), '\n', root[[1]]$visits)
   if(!is.na(checkWin(root$board))) return (root$board)
   ucb = c()
   #cat('\nChildren: ',length(root$children), '\n')
@@ -282,7 +278,7 @@ MCTSplay = function(board = array(rep(NA, 3^2), dim = c(3, 3)),
   if (length(which(ucb==max(ucb)))>1) index <- sample(which(ucb==max(ucb)), 1)
   winnerNode = root$children[[index]]
   root = winnerNode
-  #cat(root[[1]]$board, '\n')
+  
   # cat('\nNode visits: ', root$visits, '\nNode Wins: ', root$wins, '\n')
   cat('UCB:', ucb, '\nMaxUCB: ', max(ucb),
     '\nNode UCB:', findUCB(root),'\n')
