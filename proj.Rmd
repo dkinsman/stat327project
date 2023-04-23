@@ -18,7 +18,7 @@ library(kableExtra)
 # Functions and Classes
 Some functions and classes are imported from a separate file.
 ```{r}
-source('tictactoe_functions.R')
+source('functions.R')
 
 randomSimulation = function(numSims, boardSize = 3, board = NA, df, seed = 0, colName = NA){
   set.seed(seed)
@@ -217,6 +217,19 @@ pt <- pivot_wider(results, id_cols = c(First.Move,Second.Move), names_from = Win
 pt <- na.omit(pt); pt
 knitr::kable(pt, align = 'cccc') %>% kable_styling(full_width = F)
 ```
+```{r}
+MCTSvsRandomSim = function(numSims){
+  winner = replicate(numSims, MCTSvsRandom())
+  return(winner)
+}
+```
+
+```{r}
+winner = MCTSvsRandomSim(numSims =100)
+table(winner)
+```
+
+
 # Notes
 - We can check if 3 in a row by summing three entries and checking if they are 0 mod 3.
 - Right now Player1 is coded as 1, Player2 is coded as -1, and a draw is 0. And I am using winner as an indicator if the game is finished. If not, then winner is NULL.
