@@ -24,7 +24,7 @@ randomSimulation = function(numSims, boardSize = 3, board = NA, df, seed = 0, co
   set.seed(seed)
   
   winners<- replicate(numSims, randtictactoe(boardSize, board))
-  table(winners)
+  #table(winners)
   
   if (is.na(colName)){
     hist(winners, 
@@ -39,6 +39,9 @@ randomSimulation = function(numSims, boardSize = 3, board = NA, df, seed = 0, co
       df2 <- data.frame(Winner = winners, 'First Move' = rep(which(board==1)),  
                         'Second Move' = rep(which(board==-1), numSims))}
     
+  }
+  else {
+    df2 <- data.frame(Winner = winners, numSims = rep(as.character(colName),numSims))
   }
   
   df <- rbind(df, df2)
@@ -217,16 +220,131 @@ pt <- pivot_wider(results, id_cols = c(First.Move,Second.Move), names_from = Win
 pt <- na.omit(pt); pt
 knitr::kable(pt, align = 'cccc') %>% kable_styling(full_width = F)
 ```
+
+# Convergence of Random vs. Random Probabilities:
 ```{r}
-MCTSvsRandomSim = function(numSims){
-  winner = replicate(numSims, MCTSvsRandom())
+set.seed(0)
+df <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(df) <- c('Winner', 'numSims')
+
+df <- randomSimulation(10, 3, df = df, colName = '10')
+df <- randomSimulation(100, 3, df = df, colName = '100')
+df <- randomSimulation(100, 3, df = df, colName = '1000')
+df <- randomSimulation(1000, 3, df = df, colName = '10000')
+df <- randomSimulation(10000, 3, df = df, colName = '100000')
+
+df$numSims <- as.factor(df$numSims)
+df$Winner <- factor(df$Winner, levels = c(1, -1, 0), 
+                    labels = c('Player 1', 'Player 2', 'Draw'))
+
+df %>% count(Winner, numSims) %>% group_by( numSims) %>% 
+  mutate(prob = n/sum(n)) %>% 
+  ggplot(aes(x = Winner, y = prob, fill = numSims)) + 
+  geom_col(position = position_dodge(), color = 'black')
+```
+
+
+# Using Monte Carlo Search Tree
+
+## vs. Random Simulation 
+
+```{r}
+MCTSvsRandomSim = function(numSims, first = c('MCTS', 'random'), iterations = 500, board = NA, player = -1){
+  if (length(which(is.na(board)))==1) board = array(rep(NA, 3^2), 
+                                                    dim = c(3, 3))
+  
+  if (first == 'MCTS') winner = replicate(numSims, 
+                                          MCTSvsRandom(iterations = iterations, board = board, player = player))
+  else winner = replicate(numSims, 
+                          RandomvsMCTS(iterations = iterations, board = board, player = player))
   return(winner)
 }
 ```
 
+```{r, echo = F, results='hide'}
+set.seed(0)
+winnerMCTS = MCTSvsRandomSim(numSims =100, first = 'MCTS', iterations = 500)
+winnerRandom = MCTSvsRandomSim(numSims = 100, first = 'random', iterations = 500)
+```
 ```{r}
-winner = MCTSvsRandomSim(numSims =100)
-table(winner)
+dfWinners <- pivot_longer(data.frame(winnerMCTS, winnerRandom), 
+                          cols = c('winnerMCTS', 'winnerRandom'))
+ggplot(dfWinners) + 
+  geom_bar(aes(value, fill = name), position = 'dodge', color = 'black', 
+           alpha = 0.75) +
+  ggtitle('Winner of 100 Tic-Tac-Toe Games', 
+          subtitle = 'Depending on who goes First')
+```
+
+## Comparing MCTS with different number of iterations
+```{r}
+set.seed(0)
+
+start.time <- Sys.time()
+winner10 = MCTSvsRandomSim(numSims =10, first = 'MCTS', iterations = 10)
+winner100 = MCTSvsRandomSim(numSims =10, first = 'MCTS', iterations = 100)
+winner500 = MCTSvsRandomSim(numSims =10, first = 'MCTS', iterations = 500)
+winner1000= MCTSvsRandomSim(numSims =10, first = 'MCTS', iterations = 1000)
+winner5000= MCTSvsRandomSim(numSims =10, first = 'MCTS', iterations = 5000)
+#winner200 = MCTSvsRandomSim(numSims =1000, first = 'MCTS', iterations = 200)
+end.time <- Sys.time()
+time.taken <- end.time - start.time; time.taken
+```
+```{r}
+dfIter = data.frame(winner10, winner100, winner500, winner1000, winner5000)
+winnerIterations = pivot_longer(dfIter, cols = colnames(dfIter))
+winnerIterations$numSims = 
+  factor(winnerIterations$name, levels = c('winner10', 'winner100', 
+                                           'winner500', 'winner1000', 'winner5000'), 
+                               labels = c('10 simulations', '100 simulations', 
+                                          '500 simulations', '1000 simulations',
+                                          '5000 simulations'))
+
+ggplot(winnerIterations) + 
+  geom_bar(aes(value, fill = numSims), position = 'dodge', color = 'black', 
+           alpha = 0.75) +
+  ggtitle('Winner of 10 Tic-Tac-Toe Games', 
+          subtitle = 'with Different Number of MCTS Simulations')
+```
+```{r}
+set.seed(0)
+start.time <- Sys.time()
+winnerParam = MCTSvsRandomSim(numSims =100, first = 'MCTS', iterations = 500)
+end.time <- Sys.time()
+time.taken <- end.time - start.time; time.taken
+dftest = data.frame(winnerParam)
+ggplot(dftest) + geom_bar(aes(winnerParam))
+```
+## Depending on the first board ()
+```{r}
+board1 <- array(c(-1, rep(NA, 8)), dim = c(3,3))
+board4 <- array(c(rep(NA, 3), -1, rep(NA, 4)), dim = c(3,3))
+board5 <- array(c(rep(NA,4),-1,rep(NA,4)), dim = c(3,3))
+
+set.seed(0)
+start.time <- Sys.time()
+winnerb1= MCTSvsRandomSim(numSims =100, first = 'MCTS', iterations = 500, board = board1, player = -1)
+winnerb4= MCTSvsRandomSim(numSims =100, first = 'MCTS', iterations = 500, board = board4, player = -1)
+winnerb5= MCTSvsRandomSim(numSims =100, first = 'MCTS', iterations = 500, board = board5, player = -1)
+end.time <- Sys.time()
+time.taken <- end.time - start.time; time.taken
+```
+```{r}
+winnerFirst <- data.frame(winnerb1, winnerb4, winnerb5)
+winnerFirstLong = pivot_longer(winnerFirst, cols =colnames(winnerFirst))
+winnerFirstLong$winner = factor(winnerFirstLong$value, levels = c(-1,0,1),
+                                labels = c('Random', 'Draw', 'MCTS'))
+
+ggplot(winnerFirstLong) + 
+  geom_bar(aes(winner, fill = name), position = 'dodge', color = 'black', 
+           alpha = 0.75) +
+  ggtitle('Winner of 100 Tic-Tac-Toe Games', 
+          subtitle = 'with Different Starting Moves (MCTS is Player 2)')
+```
+
+```{r}
+winner = replicate(100, MCTSvsMCTS(iterations = 500, player = -1))
+hist(winner)
 ```
 
 

@@ -104,9 +104,9 @@ node <- R6Class("node",
                               # },
                               getRandomChild = function(){
                                # print('get random child')
-                                n = length(self$child)
+                                n = length(self$children)
                                 pick = sample(1:n, 1)
-                                return(self$child[pick])
+                                return(self$children[[pick]])
                               },
                               add_child = function(board, player){
                                 #print('add child')
@@ -259,7 +259,7 @@ MCTSplay = function(board = array(rep(NA, 3^2), dim = c(3, 3)),
     exploreNode <- node
     if (is.na(checkWin(node$board))) exploreNode = expandNode(node)
     
-    if(length(exploreNode$children)> 0) exploreNode <- explorenode$getRandomChild
+    if(length(exploreNode$children)> 0) exploreNode <- explorenode$getRandomChild()
     winner <- playGame(exploreNode)
     root <- backpropogate(exploreNode, winner)
     #cat('\nChildren: ',length(root$children), '\n')
@@ -280,9 +280,9 @@ MCTSplay = function(board = array(rep(NA, 3^2), dim = c(3, 3)),
   root = winnerNode
   
   # cat('\nNode visits: ', root$visits, '\nNode Wins: ', root$wins, '\n')
-  cat('UCB:', ucb, '\nMaxUCB: ', max(ucb),
-    '\nNode UCB:', findUCB(root),'\n')
-  cat('\nNode visits: ', root$visits, '\nNode wins: ', root$wins, '\n')
+  # cat('UCB:', ucb, '\nMaxUCB: ', max(ucb), '\nNode UCB:', findUCB(root),'\n')
+  # cat('\nNode visits: ', root$visits, '\nNode wins: ', root$wins, '\n')
+  #print(root$board)
   return(root$board)
 } 
 
@@ -293,9 +293,9 @@ MCTSvsRandom = function(iterations =500, dim = 3, board = NA,
   while(is.na(checkWin(board))){
     board = MCTSplay(board, player = player, iterations = iterations)
     if (print_info == T) print(board)
-    player = -1 * player
     if(!is.na(checkWin(board))) return(checkWin(board))
     board = randomPlay(board, player)
+    if (print_info == T) print(board)
   }
   if (print_info == T) print(board)
   return(checkWin(board))
@@ -307,9 +307,28 @@ RandomvsMCTS = function(iterations =500, dim = 3, board = NA,
                                                     dim = c(dim, dim))
   while(is.na(checkWin(board))){
     board = randomPlay(board, player)
+    if (print_info == T) print(board)
     board = MCTSplay(board, player = player, iterations = iterations)
     if (print_info == T) print(board)
-    player = -1 * player
+  }
+  if (print_info == T) print(board)
+  return(checkWin(board))
+}
+
+MCTSvsMCTS = function(iterations =500, dim = 3, board = NA, 
+                      player = -1, print_info = F){
+  if (length(which(is.na(board)))==1) board = array(rep(NA, dim^2), 
+                                                    dim = c(dim, dim))
+  while(is.na(checkWin(board))){
+    board = MCTSplay(board, player = player, iterations = iterations)
+    if (print_info == T) print(board)
+    if(!is.na(checkWin(board))) return(checkWin(board))
+    player = -1*player
+    board = MCTSplay(board, player, iterations = iterations)
+    if (print_info == T) print(board)
+    if(!is.na(checkWin(board))) return(checkWin(board))
+    player = -1*player
+    
   }
   if (print_info == T) print(board)
   return(checkWin(board))
