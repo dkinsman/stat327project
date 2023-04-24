@@ -1,0 +1,295 @@
+---
+title: "Final Questions"
+author: "Sabastian Zuhorski"
+date: "4/17/2023"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Question 1: Infectious Disease
+-   Below is the code used to model an infectious disease that may turn into an epidemic. It is based upon the SIR epidemic model. The function starts with a few parameters that you want to initialize your simulation with: initial_infection_rate, removal_rate, initial_susceptible, simulation_length, initial_number_infected. Then we used a few variables that store the initial_infection_rate and initial_susceptible variables as they will be dynamically changing throughout. After this comes the need to store the outputs of the model calculations, variables s, i, r, and day. We then start our loop. We will loop through the number of times the simulation_length was entered in as. each iteration is considered a day which will be represented as 'd'. So to initialize, we start on day zero where we have our initial conditions. We go through and add the different value calculations to our s, i, r and day variables. After weve  looped through the simualtion length, we create a dataframe to ourganize our data together nicely. 
+```{r}
+library(ggplot2)
+library(tidyverse)
+
+SIR = function(initial_infection_rate, removal_rate, initial_susceptible, simulation_length, initial_number_infected){
+  
+  N = initial_susceptible
+  alpha = initial_infection_rate
+  B = removal_rate
+  
+  s = c()
+  i = c()
+  r = c()
+  day = c()
+  
+  for (d in 0:simulation_length){
+   if (d == 0){
+     p = 1 - (1 - alpha)^initial_number_infected
+     s[d+1] = N
+     i[d+1] = initial_number_infected
+     r[d+1] = 0
+     day[d+1] = 1
+    
+     splus1 = sum(rbinom(s[1], 1, (1-alpha)^initial_number_infected))
+     rplus1 = sum(rbinom(1,1,B))
+     iplus1 = N + 1 - rplus1 - splus1
+     
+     s[2] = splus1
+     i[2] = iplus1
+     r[2] = rplus1
+     day[2] = 2
+     
+   } else {
+     p = 1 - (1 - alpha)^i[d+1]
+     
+     splus1 = sum(rbinom(s[d+1], 1, (1-alpha)^i[d+1]))
+     rplus1 = r[d+1] + sum(rbinom(i[d+1],1,B))
+     iplus1 = N + 1 - rplus1 - splus1
+     
+     s[d+2] = splus1
+     i[d+2] = iplus1
+     r[d+2] = rplus1
+     day[d+2] = d+2
+     
+   }
+  }
+  df = data.frame(list(Day = day, Susceptible = s, Infected = i, Recover = r))
+  return(df)
+}
+```
+
+
+# Looking at what happens when you increasing the number of people infected at the start of the simulation
+```{r}
+set.seed(4)
+epidemic1 = SIR(0.0005, 0.1, 1000, 100, 1)
+epidemic1 = epidemic1 %>% mutate(SIM = 1)
+
+epidemic2 = SIR(0.0005, 0.1, 1000, 100, 20)
+epidemic2 = epidemic2 %>% mutate(SIM = 2)
+
+epidemic3 = SIR(0.0005, 0.1, 1000, 100, 30)
+epidemic3 = epidemic3 %>% mutate(SIM = 3)
+
+epidemic4 = SIR(0.0005, 0.1, 1000, 100, 40)
+epidemic4 = epidemic4 %>% mutate(SIM = 4)
+
+new = rbind(epidemic1, epidemic2, epidemic3, epidemic4)
+
+ggplot(new, aes(x=Day))+geom_line(aes(y=Susceptible))+facet_wrap(~SIM)+ggtitle("Susceptible", subtitle = "Faceted by Simulation Number")
+ggplot(new, aes(x=Day))+geom_line(aes(y=Infected))+facet_wrap(~SIM)+ggtitle("Infected", subtitle = "Faceted by Simulation Number ")
+ggplot(new, aes(x=Day))+geom_line(aes(y=Recover))+facet_wrap(~SIM)+ggtitle("Recovered", subtitle = "Faceted by Simulation Number")
+```
+-   For this question we look at for different simulations where the only parameter that changes is the number of people infected at the start of the simulation (1, 20, 30, 40 people). Seen in plot number 1 for the susceptible data, we can see it takes a little bit longer to for infections to spread compared to the other plots. The other 3 plots have a more pronounced slope to them fairly quickly into the epidemic. 
+-   Switching over to the graphs representing the infected, we can see that as we move along to the 4 graph which has the most people infected to begin with, the epidemic reaches its peak in half the amount of time as the first plot. This would be expected as the more people that start out with it means there are more people going around infected other people. 
+-   Finally we look at the graph that details the recovered people. Surprisingly the plots all show a fairly similar recovery. It appears that the amount of people infected to begin with didnt play a factor here. Although future simulations may show differently if we were to use different numbers to start with. 
+
+
+# Looking into increasing the recover rate of the disease for a given simulation
+```{r}
+set.seed(17)
+epidemic1 = SIR(0.0005, 0.1, 1000, 100, 1)
+epidemic1 = epidemic1 %>% mutate(SIM = 1)
+
+epidemic2 = SIR(0.0005, 0.2, 1000, 100, 1)
+epidemic2 = epidemic2 %>% mutate(SIM = 2)
+
+epidemic3 = SIR(0.0005, 0.3, 1000, 100, 1)
+epidemic3 = epidemic3 %>% mutate(SIM = 3)
+
+epidemic4 = SIR(0.0005, 0.4, 1000, 100, 1)
+epidemic4 = epidemic4 %>% mutate(SIM = 4)
+
+new = rbind(epidemic1, epidemic2, epidemic3, epidemic4)
+
+ggplot(new, aes(x=Day))+geom_line(aes(y=Susceptible))+facet_wrap(~SIM)+ggtitle("Susceptible", subtitle = "Faceted by recover rate")
+ggplot(new, aes(x=Day))+geom_line(aes(y=Infected))+facet_wrap(~SIM)+ggtitle("Infected", subtitle = "Faceted by recover rate")
+ggplot(new, aes(x=Day))+geom_line(aes(y=Recover))+facet_wrap(~SIM)+ggtitle("Recovered", subtitle = "Faceted by recover rate")
+```
+-   Starting with the graph for the Susceptible, we can see that as the the recover rate increases, the more people there are that remain susceptible to the disease. People may be recovering to quick before the disease can infect another person. 
+-   Looking at the infection graph, the amount of infections at the peak drops by nearly half every time we increase he recovery rate by 10 percent. The peak also takes longer to get to as we move to a higher recovery rate. 
+-   The graph for recovery appears to be relatively the same for each plot, given that each plot for each plot the recovery rate is higher and less people are infected as previously stated. 
+
+# A visualization of the graphs previously shown except with S,I,R all plotted on the same plot.
+```{r}
+ggplot(epidemic1)+
+  geom_line(aes(x = Day, y = Susceptible, color="Susceptible"))+
+  geom_line(aes(x = Day, y = Infected, color="Infected"))+
+  geom_line(aes(x = Day, y = Recover, color="Recover"))+
+  labs(title="Epidemic Simulation for the First 100 Days", subtitle = "1k Susceptible People : 1 Initial Infection : 0.0005 Infect Rate : 0.1 Recover Rate")
+
+ggplot(epidemic2)+
+  geom_line(aes(x = Day, y = Susceptible, color="Susceptible"))+
+  geom_line(aes(x = Day, y = Infected, color="Infected"))+
+  geom_line(aes(x = Day, y = Recover, color="Recover"))+
+  labs(title="Epidemic Simulation for the First 100 Days", subtitle = "1k Susceptible People : 1 Initial Infections : 0.0005 Infect Rate : 0.2 Recover Rate")
+
+ggplot(epidemic3)+
+  geom_line(aes(x = Day, y = Susceptible, color="Susceptible"))+
+  geom_line(aes(x = Day, y = Infected, color="Infected"))+
+  geom_line(aes(x = Day, y = Recover, color="Recover"))+
+  labs(title="Epidemic Simulation for the First 100 Days", subtitle = "1k Susceptible People : 1 Initial Infections : 0.0005 Infect Rate : 0.3 Recover Rate")
+
+ggplot(epidemic4)+
+  geom_line(aes(x = Day, y = Susceptible, color="Susceptible"))+
+  geom_line(aes(x = Day, y = Infected, color="Infected"))+
+  geom_line(aes(x = Day, y = Recover, color="Recover"))+
+  labs(title="Epidemic Simulation for the First 100 Days", subtitle = "1k Susceptible People : 1 Initial Infection : 0.0005 Infect Rate : 0.4 Recover Rate")
+```
+
+# Question 2: 20 Simualtions with an infection rate of 0.0005 and a recover rate of 0.3
+-    Below is a a loop for 20 simulations of the epidemic with an infection rate of 0.0005 and a recovery rate of 0.3. So we call the SIR function and do a simulation. The results of the simulation are saved to a variable called df. Since the results of the SIR function returns a dataframe, i add a column to represent what simulation just occured with that data. If it the first iteration, ill just assign df to a new variable called "new". On the contrary, if the iteration is 2 or more then we bind together our newest simulation dataframe result with our "new" variable which holds all of the simulations weve done and combined. 
+```{r}
+for (i in 1:20){
+  df = SIR(0.0005, 0.3, 1000, 100, 1)
+  df = df %>% mutate(SIM = i)
+  if (i == 1){
+    new = df
+  } else {
+    new = rbind(new, df)
+  }
+}
+
+ggplot(new, aes(x=Day))+geom_line(aes(y=Susceptible, group=SIM, color=Susceptible))+ggtitle("Susceptible")
+ggplot(new, aes(x=Day))+geom_line(aes(y=Infected, group=SIM, color=Infected))+ggtitle("Infected")
+ggplot(new, aes(x=Day))+geom_line(aes(y=Recover, group=SIM, color=Recover))+ggtitle("Recovered")
+```
+-   The 3 graphs above show the result of every simulation with each graph individually representing Susceptible, Infected and Recovered
+
+# Below is a graph the represents the average values for a specific day for this 20 simualtions 
+```{r}
+averages = new %>% group_by(Day) %>% summarise(Sus = mean(Susceptible), Infect = mean(Infected), rec = mean(Recover))
+ggplot(averages)+
+  geom_line(aes(x = Day, y = Sus, color="Susceptible"))+
+  geom_line(aes(x = Day, y = Infect, color="Infected"))+
+  geom_line(aes(x = Day, y = rec, color="Recover"))+
+  labs(title="Averages for 20 Epidemic Simulations for the First 100 Days", subtitle = "1k Susceptible People : 1 Initial Infection : 0.0005 Infect Rate : 0.3 Recover Rate")
+```
+
+
+# Question 3
+```{r}
+# decode.R
+
+message <- "coincidences in general are great stumbling blocks in the way of that class of thinkers who have been educated to know nothing of the theory of probabilities that theory to which the most glorious objects of human research are indebted for the most glorious of illustrations edgar allen poe the murders in the rue morgue morpheus this is your last chance after this there is no turning back you take the blue pill the story ends you wake up in your bed and believe whatever you want to believe you take the red pill you stay in wonderland and i show you how deep the rabbit hole goes"
+
+set.seed(1)
+
+#  mat <- read.table("ShakeCount.txt",header=F)
+mat <- read.table("AustenCount.txt",header=F)
+logmat <- log(mat + 1)
+
+
+# Computes the score of the decoded message using the given code
+score <- function(code) {
+  # This code first converts each character in code to its corresponding index using charIndex and then   constructs a matrix of pairwise indices using cbind. Finally, it looks up the transition probabilities   for all pairs of indices at once using logmat and sums them up.
+  
+  char_indices <- sapply(strsplit(code, "")[[1]], charIndex)
+  # sapply()  applies a function to each element of a vector or list and returns the results in a  simplified form
+  
+  char_indices_pairs <- cbind(char_indices[-length(char_indices)], char_indices[-1])
+  # cbind() is used to combine vectors, matrices or data frames by columns.
+  
+  transition_probs <- logmat[char_indices_pairs]
+  score <- sum(transition_probs)
+  return(score)
+}
+
+
+# ascii(char) returns the numerical ascii value for char
+ascii <- function(char)
+{ 
+	strtoi(charToRaw(char),16L) #get 'raw' ascii value
+} 
+
+# charIndex takes in a character and returns its 'char value'
+# defined as a=1, b=2, ..., z=26, space=27
+# this matches the array created by read.table
+charIndex <- function(char)
+{
+	aValue <- ascii(char)
+	if (aValue == 32)
+	{
+		# return 27 if a space
+		27
+	} else
+	{
+		#ascii sets "a" as 97, so subtract 96
+		aValue - 96 
+	}
+}
+
+# Decrypts code according to curFunc	
+decrypt <- function(code,curFunc)
+{  	
+	out <- code
+	# for each character in the message, decode it according to the curFunc
+	for (i in 1:nchar(message))
+	{
+		charInd <- charIndex(substr(code,i,i))
+		if (charInd < 27)
+		{
+			# change the ith character to the character determined by the curFunc
+			substr(out,i,i) <- rawToChar(as.raw(curFunc[charInd] + 96))
+		}
+	}
+	out 
+}
+# codemess holds the scrambled message
+codemess <- decrypt(message,sample(1:26))
+
+# instantiate a map to hold previously computed codes' scores
+map <- new.env(hash=T, parent=emptyenv())
+
+# we begin with a basic (a->a, z->z) function for decrypting the codemess
+curFunc <- 1:27
+
+# calculate the score for curFunc and store it in the map
+oldScore <- score(decrypt(codemess,curFunc))
+map[[paste(curFunc, collapse='')]] <- oldScore
+
+# run 7000 iterations of the Metropolis-Hastings algorithm
+for (iteration in 1:700) {
+	# sample two letters to swap
+	swaps <- sample(1:26,2)
+	oldFunc <- curFunc
+	
+	# let curFunc be oldFunc but with two letters swapped
+	curFunc[swaps[1]] <- oldFunc[swaps[2]]
+	curFunc[swaps[2]] <- oldFunc[swaps[1]]
+
+	# if we have already scored this decoding,
+	# retrieve score from our map
+	newCode <- decrypt(codemess, curFunc)
+  if (exists(paste(curFunc, collapse=''), map)) {
+    newScore <- map[[paste(curFunc, collapse='')]]
+  } else {
+    newScore <- score(newCode)
+    map[[paste(curFunc, collapse='')]] <- newScore
+  }
+	
+	# decide whether to accept curFunc or to revert to oldFunc
+	if (runif(1) > exp(newScore-oldScore))
+	{
+		curFunc <- oldFunc
+	} else 
+	{
+		oldScore <- newScore
+	}
+	
+	# print out our decryption every 100 iterations
+	if ((iteration %%  100) == 0)
+	{
+		print(c(iteration,decrypt(codemess,curFunc)))
+	}
+}
+
+```
+
+
+
