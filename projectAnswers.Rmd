@@ -64,7 +64,7 @@ SIR = function(initial_infection_rate, removal_rate, initial_susceptible, simula
 ```
 
 
-# Looking at what happens when you increasing the number of people infected at the start of the simulation
+## Looking at what happens when you increasing the number of people infected at the start of the simulation
 ```{r}
 set.seed(4)
 epidemic1 = SIR(0.0005, 0.1, 1000, 100, 1)
@@ -90,7 +90,7 @@ ggplot(new, aes(x=Day))+geom_line(aes(y=Recover))+facet_wrap(~SIM)+ggtitle("Reco
 -   Finally we look at the graph that details the recovered people. Surprisingly the plots all show a fairly similar recovery. It appears that the amount of people infected to begin with didnt play a factor here. Although future simulations may show differently if we were to use different numbers to start with. 
 
 
-# Looking into increasing the recover rate of the disease for a given simulation
+## Looking into increasing the recover rate of the disease for a given simulation
 ```{r}
 set.seed(17)
 epidemic1 = SIR(0.0005, 0.1, 1000, 100, 1)
@@ -115,7 +115,7 @@ ggplot(new, aes(x=Day))+geom_line(aes(y=Recover))+facet_wrap(~SIM)+ggtitle("Reco
 -   Looking at the infection graph, the amount of infections at the peak drops by nearly half every time we increase he recovery rate by 10 percent. The peak also takes longer to get to as we move to a higher recovery rate. 
 -   The graph for recovery appears to be relatively the same for each plot, given that each plot for each plot the recovery rate is higher and less people are infected as previously stated. 
 
-# A visualization of the graphs previously shown except with S,I,R all plotted on the same plot.
+## A visualization of the graphs previously shown except with S,I,R all plotted on the same plot.
 ```{r}
 ggplot(epidemic1)+
   geom_line(aes(x = Day, y = Susceptible, color="Susceptible"))+
@@ -161,7 +161,7 @@ ggplot(new, aes(x=Day))+geom_line(aes(y=Recover, group=SIM, color=Recover))+ggti
 ```
 -   The 3 graphs above show the result of every simulation with each graph individually representing Susceptible, Infected and Recovered
 
-# Below is a graph the represents the average values for a specific day for this 20 simualtions 
+## Below is a graph the represents the average values for a specific day for this 20 simualtions 
 ```{r}
 averages = new %>% group_by(Day) %>% summarise(Sus = mean(Susceptible), Infect = mean(Infected), rec = mean(Recover))
 ggplot(averages)+
@@ -172,41 +172,32 @@ ggplot(averages)+
 ```
 
 
-# Question 3
+# Question 3: Decryption
 ```{r}
 # decode.R
-
+start3 = proc.time()
 message <- "coincidences in general are great stumbling blocks in the way of that class of thinkers who have been educated to know nothing of the theory of probabilities that theory to which the most glorious objects of human research are indebted for the most glorious of illustrations edgar allen poe the murders in the rue morgue morpheus this is your last chance after this there is no turning back you take the blue pill the story ends you wake up in your bed and believe whatever you want to believe you take the red pill you stay in wonderland and i show you how deep the rabbit hole goes"
-
 set.seed(1)
-
 #  mat <- read.table("ShakeCount.txt",header=F)
 mat <- read.table("AustenCount.txt",header=F)
 logmat <- log(mat + 1)
-
-
 # Computes the score of the decoded message using the given code
-score <- function(code) {
-  # This code first converts each character in code to its corresponding index using charIndex and then   constructs a matrix of pairwise indices using cbind. Finally, it looks up the transition probabilities   for all pairs of indices at once using logmat and sums them up.
-  
-  char_indices <- sapply(strsplit(code, "")[[1]], charIndex)
-  # sapply()  applies a function to each element of a vector or list and returns the results in a  simplified form
-  
-  char_indices_pairs <- cbind(char_indices[-length(char_indices)], char_indices[-1])
-  # cbind() is used to combine vectors, matrices or data frames by columns.
-  
-  transition_probs <- logmat[char_indices_pairs]
-  score <- sum(transition_probs)
-  return(score)
+score <- function(code)
+{  
+	p <- 0
+	# For each pair of letters in the decoded message
+	# query the transition matrix for the probability of that pair
+	for (i in 1:(nchar(message)-1)){
+		p <- p + logmat[charIndex(substr(code, i, i)),charIndex(substr(code, i+1, i+1))]
+	}
+	# return the sum of these probabilities
+	p
 }
-
-
 # ascii(char) returns the numerical ascii value for char
 ascii <- function(char)
 { 
 	strtoi(charToRaw(char),16L) #get 'raw' ascii value
 } 
-
 # charIndex takes in a character and returns its 'char value'
 # defined as a=1, b=2, ..., z=26, space=27
 # this matches the array created by read.table
@@ -223,7 +214,6 @@ charIndex <- function(char)
 		aValue - 96 
 	}
 }
-
 # Decrypts code according to curFunc	
 decrypt <- function(code,curFunc)
 {  	
@@ -242,6 +232,129 @@ decrypt <- function(code,curFunc)
 }
 # codemess holds the scrambled message
 codemess <- decrypt(message,sample(1:26))
+# instantiate a map to hold previously computed codes' scores
+map <- new.env(hash=T, parent=emptyenv())
+# we begin with a basic (a->a, z->z) function for decrypting the codemess
+curFunc <- 1:27
+# calculate the score for curFunc and store it in the map
+oldScore <- score(decrypt(codemess,curFunc))
+map[[paste(curFunc, collapse='')]] <- oldScore
+
+df = data.frame(iterations = numeric(), old = numeric(), new = numeric())
+# run 10000 iterations of the Metropolis-Hastings algorithm
+for (iteration in 1:10000) {
+	# sample two letters to swap
+	swaps <- sample(1:26,2)
+	oldFunc <- curFunc
+	
+	# let curFunc be oldFunc but with two letters swapped
+	curFunc[swaps[1]] <- oldFunc[swaps[2]]
+	curFunc[swaps[2]] <- oldFunc[swaps[1]]
+	
+	# if we have already scored this decoding,
+	# retrieve score from our map
+	if (exists(paste(curFunc, collapse =''), map)){
+		newScore <- map[[paste(curFunc, collapse ='')]]
+	} else
+	# if we have not already scored this decoding,
+	# calculate it and store it in the map
+	{
+		newScore <- score (decrypt(codemess,curFunc))
+		map[[paste(curFunc, collapse = '')]] <- newScore
+	}
+	
+	# decide whether to accept curFunc or to revert to oldFunc
+	if (runif(1) > exp(newScore-oldScore))
+	{
+		curFunc <- oldFunc
+	} else 
+	{
+		oldScore <- newScore
+	}
+	
+	# print out our decryption every 10000 iterations
+	if ((iteration %%  10000) == 0)
+	{
+		print(c(iteration,decrypt(codemess,curFunc)))
+	}
+	scoreOutputs = c(iteration, round(oldScore), round(newScore))
+  df = rbind(df, scoreOutputs)
+}
+
+time3 = proc.time() - start3
+
+colnames(df) = c("Iteration", "oldscore", "newscore")
+library(ggplot2)
+o_plot = ggplot(df, aes(x=Iteration))+geom_line(aes(y=oldscore), color="red", size=1.5)+geom_point(aes(y=newscore), size=2, alpha=0.1)+ggtitle("Graph representing the scores of the original decrypt code")
+```
+
+
+
+## Differences between the old code and new. 
+-   The first difference comes in the score() function where we use vectorization. The score function currently uses a loop that iterates over every pair of characters in the input code. Instead of doing that, we  use vectorization to compute the transition probabilities for all pairs of indices at once using matrix indexing. Vectorization operates on entire arrays or vectors of data at once, rather than processing each element of the array individually. This will make the code more efficient.
+-   The second difference is that we avoid unnecessary function calls. Specifically the charIndex function is called for every character in the input code. We can avoid unnecessary function calls by precomputing the indices for all possible characters and storing them in a table for lookup.
+- These differences help speed up the running time in the script. 
+
+```{r}
+# decode.R
+start2 = proc.time()
+message <- "coincidences in general are great stumbling blocks in the way of that class of thinkers who have been educated to know nothing of the theory of probabilities that theory to which the most glorious objects of human research are indebted for the most glorious of illustrations edgar allen poe the murders in the rue morgue morpheus this is your last chance after this there is no turning back you take the blue pill the story ends you wake up in your bed and believe whatever you want to believe you take the red pill you stay in wonderland and i show you how deep the rabbit hole goes"
+
+set.seed(1)
+
+logmat <- log(read.table("AustenCount.txt",header=F) + 1)
+
+
+# Computes the score of the decoded message using the given code
+score <- function(code) {
+  char_indices <- sapply(strsplit(code, "")[[1]], charIndex)
+  # sapply()  applies a function to each element of a vector or list and returns the results in a  simplified form
+  char_indices_pairs <- cbind(char_indices[-length(char_indices)], char_indices[-1])
+  # cbind() is used to combine vectors, matrices or data frames by columns.
+  transition_probs <- logmat[char_indices_pairs]
+  score <- sum(transition_probs)
+  return(score)
+}
+
+
+# ascii(char) returns the numerical ascii value for char
+ascii <- function(char){ 
+  strtoi(charToRaw(char),16L) #get 'raw' ascii value
+} 
+
+
+# Precompute indices for all possible characters
+char_indices <- c(1:26, 27)
+char_values <- c(1:26, 32)
+
+# Define lookup table
+char_index_lookup <- setNames(char_indices, letters)
+char_index_lookup[" "] <- 27
+
+
+# Modify charIndex function to use the lookup table
+charIndex <- function(char) {
+  char_index_lookup[char]
+}
+
+
+# Decrypts code according to curFunc	
+decrypt <- function(code,curFunc){  	
+  out <- code
+  # for each character in the message, decode it according to the curFunc
+  for (i in 1:nchar(message))  {
+    charInd <- charIndex(substr(code,i,i))
+    if (charInd < 27)    {
+      # change the ith character to the character determined by the curFunc
+      substr(out,i,i) <- rawToChar(as.raw(curFunc[charInd] + 96))
+    }
+  }
+  out 
+}
+
+
+# codemess holds the scrambled message
+codemess <- decrypt(message,sample(1:26))
 
 # instantiate a map to hold previously computed codes' scores
 map <- new.env(hash=T, parent=emptyenv())
@@ -253,43 +366,58 @@ curFunc <- 1:27
 oldScore <- score(decrypt(codemess,curFunc))
 map[[paste(curFunc, collapse='')]] <- oldScore
 
-# run 7000 iterations of the Metropolis-Hastings algorithm
-for (iteration in 1:700) {
-	# sample two letters to swap
-	swaps <- sample(1:26,2)
-	oldFunc <- curFunc
-	
-	# let curFunc be oldFunc but with two letters swapped
-	curFunc[swaps[1]] <- oldFunc[swaps[2]]
-	curFunc[swaps[2]] <- oldFunc[swaps[1]]
 
-	# if we have already scored this decoding,
-	# retrieve score from our map
-	newCode <- decrypt(codemess, curFunc)
+df1 = data.frame(iterations = numeric(), old = numeric(), new = numeric())
+# run 10000 iterations of the Metropolis-Hastings algorithm
+for (iteration in 1:10000) {
+  # sample two letters to swap
+  swaps <- sample(1:26,2)
+  oldFunc <- curFunc
+  
+  # let curFunc be oldFunc but with two letters swapped
+  curFunc[swaps[1]] <- oldFunc[swaps[2]]
+  curFunc[swaps[2]] <- oldFunc[swaps[1]]
+  
+  # if we have already scored this decoding,
+  # retrieve score from our map
+  newCode <- decrypt(codemess, curFunc)
   if (exists(paste(curFunc, collapse=''), map)) {
     newScore <- map[[paste(curFunc, collapse='')]]
   } else {
     newScore <- score(newCode)
     map[[paste(curFunc, collapse='')]] <- newScore
   }
-	
-	# decide whether to accept curFunc or to revert to oldFunc
-	if (runif(1) > exp(newScore-oldScore))
-	{
-		curFunc <- oldFunc
-	} else 
-	{
-		oldScore <- newScore
-	}
-	
-	# print out our decryption every 100 iterations
-	if ((iteration %%  100) == 0)
-	{
-		print(c(iteration,decrypt(codemess,curFunc)))
-	}
+  
+  # decide whether to accept curFunc or to revert to oldFunc
+  if (runif(1) > exp(newScore-oldScore))  {
+    curFunc <- oldFunc
+  } else   {
+    oldScore <- newScore
+  }
+  
+  # print out our decryption every 100 iterations
+  if ((iteration %%  10000) == 0)  {
+    print(c(iteration,decrypt(codemess,curFunc)))
+  }
+  scoreOutputs = c(iteration, round(oldScore), round(newScore))
+  df1 = rbind(df1, scoreOutputs)
 }
 
+time2 = proc.time() - start2
+
+colnames(df1) = c("Iteration", "oldscore", "newscore")
+library(ggplot2)
+n_plot = ggplot(df1, aes(x=Iteration))+geom_line(aes(y=oldscore), color="red", size=1.5)+geom_point(aes(y=newscore), size=2, alpha=0.1)+ggtitle("Graph representing the scores of the new decrypt code")
 ```
+```{r}
+o_plot
+n_plot
+```
+-   As you can see, they reach the best score at the same exact time.
 
-
-
+## Now for looking at the performance
+```{r}
+cat("Old decode time:",time3['elapsed'], "\n")
+cat("New decode time:",time2['elapsed'])
+```
+-   By changing two of the functions in the original code, we can cut down the time it takes to complete the code chunk by 1/2 the amount of time or even more! 
