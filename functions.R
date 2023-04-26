@@ -33,6 +33,7 @@ checkWin = function (board){
     }
   }
   
+  # collect diagonal and anti-dagonal entries
   diag_count = dim
   antidiag_count = 1
   diags <- c(diag_count)
@@ -46,6 +47,7 @@ checkWin = function (board){
     antidiags <- append(antidiags, antidiag_count)
   }
   
+  #check the diagonals and anti-diagonals for wins
   #print(board[diags])
   if (sum(board[diags], na.rm = T)==dim){
     winner = 1
@@ -68,13 +70,15 @@ checkWin = function (board){
   }
   
   
-  # declare a draw
+  # declare a draw if none of the other return statements are taken and 
+  # there are no open moves left
   if(length(which(is.na(board)))==0) winner = 0
   
   return(winner)
 }
 
 ################################ MAKE A RANDOM PLAY ############################
+# randomly choose a move
 randomPlay = function(board, player) {
   # gets the indices of open boxes on the board
   open_box = which(is.na(board))
@@ -90,6 +94,7 @@ randomPlay = function(board, player) {
 }
 
 ################################## MCTS ########################################
+#declare the node class necessary for the tree
 node <- R6Class("node", 
                 public = list(parent = NULL, 
                               player = NULL,
@@ -118,6 +123,7 @@ node <- R6Class("node",
                                 #self$children[[min(which(is.null(self$children)))]] = child
                               }
                 ))
+#calculate the UCB value
 findUCB = function(node){
   #print('UCB')
   if(node$visits == 0) return(1e6)
@@ -134,6 +140,7 @@ findUCB = function(node){
   }
 }
 
+# traverse the tree and select the best leaf node according to UCB
 selectNode = function(root){
  # print('Select Node')
   node = root
@@ -150,21 +157,11 @@ selectNode = function(root){
     #print(length(node$children))
     node = node$children[[index]]
   }
-  # repeat{
-  #   node[[1]]$visits = node[[1]]$visits +1
-  #   #node[[1]]$parent[[1]]$visits = node[[1]]$parent[[1]]$visits +1
-  #   if (is.null(node[[1]]$parent)) break
-  #   node = node[[1]]$parent
-  # }
-  # for (i in indices){
-  #   print(i)
-  #   #node = node[[1]]$children[i]
-  # }
   
-  #cat('\nNode visits (select):', node[[1]]$visits)
   return(node)
 }
 
+# expand the selected node if the game is in progress
 expandNode <- function(parent){
   #print('expand')
   open_moves = which(is.na(parent$board))
@@ -175,7 +172,6 @@ expandNode <- function(parent){
     board = parent$board
     board[i] = player
     #print(board)
-    #print(newNode[[1]]$board)
 
     parent$add_child(board =board, player =player)
   }
@@ -183,31 +179,19 @@ expandNode <- function(parent){
   random_move = sample(1:length(parent$children), 1)
   #print(random_move)
   
+  #return a random child of the node just expanded
   return(parent$children[[random_move]])
-  # return(parent)
-  # parent[[1]]$visits = parent[[1]]$visits + 1
-  # print(parent[[1]]$visits)
-  #return(parent)
 }
 
-# selectRandomChild <- function(node){
-#   print('select random child')
-#   n <- length(node$children)/ 6
-#   rand <- sample(1:n, 1)
-#   node = node$children[(rand*6+1):(rand*6+6)]
-#   #node[[1]]$visits = node[[1]]$visits +1
-#   return(node)
-# }
-
+# play tic-tac-toe random vs random.
 playGame <- function(node) {
   #print('play game')
   game <- randtictactoe(3, node$board, node$player)
   return(game)
 }
 
+#back propogate the number of visits and wins
 backpropogate <-function(node, winner) {
-  #print('backpropogate')
-  #paste0('Node visits:', node[[1]]$visits)
   
   # repeat{
   #   node$visits = node$visits + 1
@@ -221,10 +205,6 @@ backpropogate <-function(node, winner) {
   #   if(is.null(node$parent)) break
   #   node = node$parent
   # }
-  #   paste0('Node visits:', node[[1]]$visits)
-  #   #print(length(node[[1]]$parent))
-  #
-  
   #
   
   # node = node[[1]]$parent
@@ -234,14 +214,12 @@ backpropogate <-function(node, winner) {
     node$wins = node$wins + 1
   }
   if(!is.null(node$parent)){
-      #node[[1]]$children = root[[1]]$children
-      #paste0('Node visits:', node[[1]]$visits)
     return(backpropogate(node$parent, winner))
   }
   return(node)
 }
 
-
+# Make a MCTS play
 MCTSplay = function(board = array(rep(NA, 3^2), dim = c(3, 3)), 
                     player = 1, iterations){
   # create a root
@@ -257,15 +235,19 @@ MCTSplay = function(board = array(rep(NA, 3^2), dim = c(3, 3)),
     node <- selectNode(root)
     #expand the node if terminal
     exploreNode <- node
+    # expand the node chosen and choose one of the new children to simulate 
+    # and simulate from
     if (is.na(checkWin(node$board))) exploreNode = expandNode(node)
-    
     if(length(exploreNode$children)> 0) exploreNode <- explorenode$getRandomChild()
+    # simulate a game
     winner <- playGame(exploreNode)
+    # backpropogate
     root <- backpropogate(exploreNode, winner)
     #cat('\nChildren: ',length(root$children), '\n')
     #print(exploreNode$board)
   }
   
+  # final selection of the best move, returns the board with the best move
   if(!is.na(checkWin(root$board))) return (root$board)
   ucb = c()
   #cat('\nChildren: ',length(root$children), '\n')
@@ -286,6 +268,7 @@ MCTSplay = function(board = array(rep(NA, 3^2), dim = c(3, 3)),
   return(root$board)
 } 
 
+#simulate a MCTSvs Random
 MCTSvsRandom = function(iterations =500, dim = 3, board = NA, 
                         player = -1, print_info = F){
   if (length(which(is.na(board)))==1) board = array(rep(NA, dim^2), 
@@ -338,7 +321,6 @@ MCTSvsMCTS = function(iterations =500, dim = 3, board = NA,
 randtictactoe = function(dim, board = NA,  player = 1, print_info = F){
   if (length(which(is.na(board)))==1) board = array(rep(NA, dim^2), 
                                                     dim = c(dim, dim))
-  #print(board)
   while (is.na(checkWin(board))){
     #print(player)
     board = randomPlay(board, player)
@@ -362,5 +344,4 @@ randtictactoe = function(dim, board = NA,  player = 1, print_info = F){
 }
 
 ####################### 
-
 
